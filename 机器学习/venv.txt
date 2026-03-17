@@ -1,5 +1,0 @@
-source /Users/darren/Desktop/IC/venv/bin/activate
-
-source /Users/darren/Desktop/ML/2/venv/bin/activate
-
-source /Users/darren/Desktop/ML/3/venv/bin/activate
