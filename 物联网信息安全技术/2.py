@@ -1,6 +1,4 @@
-# ==========================================
 # DES 算法完整实现 (包含所有标准表和S盒)
-# ==========================================
 
 # 1. 初始置换 IP (64位 -> 64位)
 IP = [
@@ -122,9 +120,7 @@ S_BOX = [
 ]
 
 
-# ==========================================
 # 基础工具函数
-# ==========================================
 def permute(block, table):
     """根据置换表进行位重新排列"""
     return [block[i - 1] for i in table]
@@ -137,10 +133,7 @@ def xor(b1, b2):
     """按位异或"""
     return [x ^ y for x, y in zip(b1, b2)]
 
-
-# ==========================================
 # DES 核心模块实现
-# ==========================================
 def generate_subkeys(key_64):
     """子密钥产生模块：从64位主密钥生成16个48位子密钥"""
     subkeys = []
@@ -197,7 +190,7 @@ def des_block(input_64, key_64, mode='encrypt'):
     if mode == 'decrypt':
         subkeys = subkeys[::-1]
         
-    # 2. 16轮Feistel���络运算
+    # 2. 16轮Feistel运算
     for i in range(16):
         next_L = R
         # R(i) = L(i-1) ⊕ F(R(i-1), K_i)
@@ -211,10 +204,7 @@ def des_block(input_64, key_64, mode='encrypt'):
     # 4. 逆初始置换 IP_INV
     return permute(combined, IP_INV)
 
-
-# ==========================================
 # 辅助函数: 字符串/字节流 与 二进制数组 的转换
-# ==========================================
 def string_to_bits(s):
     bits = []
     for char in s.encode('utf-8'):
@@ -234,17 +224,15 @@ def bits_to_string(bits):
     return "".join(chars)
 
 
-# ==========================================
 # 测试运行代码
-# ==========================================
 if __name__ == "__main__":
     print("="*40)
     print("DES 算法完整测试")
     print("="*40)
     
     # 1. 准备 8字节明文 和 8字节密钥
-    plain_str = "HelloDES"  # 刚好8字节 (64位)
-    key_str = "MyKey123"    # 刚好8字节 (64位)
+    plain_str = "HelloDES"  # 8字节 (64位)
+    key_str = "MyKey123"    # 8字节 (64位)
     
     plain_bits = string_to_bits(plain_str)[:64]
     key_bits = string_to_bits(key_str)[:64]
@@ -267,6 +255,6 @@ if __name__ == "__main__":
     
     # 4. 验证
     if plain_str == decrypted_str:
-        print("\n✅ 测试通过！解密后的数据与原始明文完全一致。")
+        print("\n测试通过！")
     else:
-        print("\n❌ 测试失败！")
+        print("\n测试失败！")
