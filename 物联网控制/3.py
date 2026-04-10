@@ -2,22 +2,36 @@ import random
 import copy
 import networkx as nx
 import matplotlib.pyplot as plt
-plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']  
-plt.rcParams['axes.unicode_minus'] = False    
 
-# 1. 定义路网图 (邻接表表示: 节点 -> {相邻节点: 距离})
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'PingFang SC', 'SimHei', 'Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+# 1. 定义复杂的路网图 (20个节点，包含主干道和复杂分支)
 GRAPH = {
-    0: {1: 2, 2: 5},
-    1: {0: 2, 2: 2, 3: 4},
-    2: {0: 5, 1: 2, 3: 1, 4: 6},
-    3: {1: 4, 2: 1, 4: 2, 5: 3},
-    4: {2: 6, 3: 2, 5: 1, 6: 4},
-    5: {3: 3, 4: 1, 6: 2},
-    6: {4: 4, 5: 2}
+    0: {1: 4, 5: 3, 6: 7},
+    1: {0: 4, 2: 5, 6: 2},
+    2: {1: 5, 3: 2, 7: 4, 8: 6},
+    3: {2: 2, 4: 6, 8: 3},
+    4: {3: 6, 9: 5},
+    5: {0: 3, 6: 4, 10: 6},
+    6: {0: 7, 1: 2, 5: 4, 7: 3, 11: 5, 12: 4},
+    7: {2: 4, 6: 3, 8: 4, 12: 2},
+    8: {2: 6, 3: 3, 7: 4, 9: 2, 13: 5},
+    9: {4: 5, 8: 2, 14: 4},
+    10: {5: 6, 11: 3, 15: 5},
+    11: {6: 5, 10: 3, 12: 4, 16: 3, 17: 4},
+    12: {6: 4, 7: 2, 11: 4, 13: 3, 17: 6, 18: 5},
+    13: {8: 5, 12: 3, 14: 2, 18: 4},
+    14: {9: 4, 13: 2, 19: 7},
+    15: {10: 5, 16: 4},
+    16: {11: 3, 15: 4, 17: 2},
+    17: {11: 4, 12: 6, 16: 2, 18: 3},
+    18: {12: 5, 13: 4, 17: 3, 19: 5},
+    19: {14: 7, 18: 5}
 }
 
 class PathPlanningGA:
-    def __init__(self, start, target, pop_size=30, max_gen=50, pc=0.8, pm=0.2):
+    def __init__(self, start, target, pop_size=50, max_gen=200, pc=0.8, pm=0.2):
         self.start = start
         self.target = target
         self.pop_size = pop_size
@@ -33,13 +47,13 @@ class PathPlanningGA:
         neighbors = list(GRAPH[current].keys())
         random.shuffle(neighbors)
         for n in neighbors:
-            if n not in path: # 防止成环
+            if n not in path: 
                 res = self.random_path(n, target, path + [n])
                 if res: return res
         return None
 
     def init_population(self):
-        """3. 初始路径的产生（修复了死循环问题）"""
+        """3. 初始路径的产生"""
         attempts = 0
         while len(self.population) < self.pop_size:
             path = self.random_path(self.start, self.target, [self.start])
@@ -47,8 +61,7 @@ class PathPlanningGA:
                 if path not in self.population:
                     self.population.append(path)
                 else:
-                    # 如果图太小，独立路径数量少于 pop_size，尝试多次后允许加入重复个体
-                    if attempts > 100:
+                    if attempts > 500: # 复杂图放宽尝试次数
                         self.population.append(path)
             attempts += 1
 
@@ -79,16 +92,14 @@ class PathPlanningGA:
         """6. 交叉操作"""
         if random.random() > self.pc:
             return p1, p2
-        # 寻找除起点和终点外的公共节点
         common_nodes = list(set(p1[1:-1]) & set(p2[1:-1]))
         if not common_nodes:
-            return p1, p2 # 无公共节点，不交叉
+            return p1, p2 
         
         cross_node = random.choice(common_nodes)
         idx1 = p1.index(cross_node)
         idx2 = p2.index(cross_node)
         
-        # 交换产生子代
         child1 = p1[:idx1] + p2[idx2:]
         child2 = p2[:idx2] + p1[idx1:]
         return child1, child2
@@ -98,11 +109,9 @@ class PathPlanningGA:
         if random.random() > self.pm or len(path) <= 2:
             return path
         
-        # 随机选择变异点（避开终点）
         mutate_idx = random.randint(0, len(path) - 2)
         mutate_node = path[mutate_idx]
         
-        # 从变异点重新寻找一条到终点的路径
         new_sub_path = self.random_path(mutate_node, self.target, [mutate_node])
         if new_sub_path:
             mutated_path = path[:mutate_idx] + new_sub_path
@@ -114,7 +123,6 @@ class PathPlanningGA:
         new_path = []
         for node in path:
             if node in new_path:
-                # 出现环路，删除环路部分
                 idx = new_path.index(node)
                 new_path = new_path[:idx]
             new_path.append(node)
@@ -129,7 +137,7 @@ class PathPlanningGA:
         for gen in range(self.max_gen):
             new_population = []
             
-            # 记录当前代最优
+            # 记录当前代最优 (保留精英)
             for p in self.population:
                 dist = self.calculate_distance(p)
                 if dist < best_dist:
@@ -151,8 +159,7 @@ class PathPlanningGA:
                 
                 new_population.extend([c1, c2])
                 
-            # 保持种群规模并保留精英
-            # 确保即使最后产生了多余的个体，也只取 pop_size-1 个，再把历史最优加回去
+            # 保持种群规模并保留最佳路径
             self.population = new_population[:self.pop_size-1] + [best_path]
 
         return best_path, best_dist
@@ -203,7 +210,7 @@ def visualize_path(graph_dict, best_path):
 # 仿真执行
 if __name__ == "__main__":
     start_node = 0
-    target_node = 6
+    target_node = 19
     print(f"开始路径规划模拟: 起点 {start_node} -> 终点 {target_node}")
     
     # 运行遗传算法

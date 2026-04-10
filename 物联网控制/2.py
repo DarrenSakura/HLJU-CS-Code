@@ -2,13 +2,10 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
-
-plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']  # Windows用户若显示方块请改回 'SimHei'
+plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']  # bug改'SimHei'
 plt.rcParams['axes.unicode_minus'] = False    
 
-# ==========================================
 # 第一阶段：基础时间控制器 (重量 + 材质 -> 基础时间)
-# ==========================================
 weight = ctrl.Antecedent(np.arange(0, 21, 1), '衣物重量 (kg)')
 material = ctrl.Antecedent(np.arange(0, 101, 1), '衣服材质 (0轻薄-100厚重)')
 base_time = ctrl.Consequent(np.arange(10, 51, 1), '基础时间 (分钟)')
@@ -40,9 +37,7 @@ rule_b9 = ctrl.Rule(weight['重'] & material['厚重(牛仔)'], base_time['长']
 base_ctrl = ctrl.ControlSystem([rule_b1, rule_b2, rule_b3, rule_b4, rule_b5, rule_b6, rule_b7, rule_b8, rule_b9])
 base_sim = ctrl.ControlSystemSimulation(base_ctrl)
 
-# ==========================================
 # 第二阶段：时间调整控制器 (污浊度 + 污浊类型 -> 调整时间)
-# ==========================================
 dirt = ctrl.Antecedent(np.arange(0, 101, 1), '污浊程度 (%)')
 dirt_type = ctrl.Antecedent(np.arange(0, 101, 1), '污浊类型 (0非油性-100油性顽固)')
 time_adj = ctrl.Consequent(np.arange(-15, 16, 1), '调整时间 (分钟)')
@@ -74,9 +69,7 @@ rule_a9 = ctrl.Rule(dirt['严重'] & dirt_type['油性(顽固)'], time_adj['大�
 adj_ctrl = ctrl.ControlSystem([rule_a1, rule_a2, rule_a3, rule_a4, rule_a5, rule_a6, rule_a7, rule_a8, rule_a9])
 adj_sim = ctrl.ControlSystemSimulation(adj_ctrl)
 
-# ==========================================
 # 交互与计算
-# ==========================================
 print("--- 欢迎使用 双阶模糊控制 全自动洗衣机系统 ---")
 try:
     test_w = float(input("1. 请输入衣物重量 (0 - 20 kg): "))
@@ -107,9 +100,7 @@ print(f"【第二阶段】根据 污浊度({test_d}%) 和 类型({test_dt}) -> �
 print(f"【最终结论】精确洗涤时间: {final_time:.2f} 分钟")
 print("="*40 + "\n正在生成双阶段3D控制曲面图...")
 
-# ==========================================
-# 可视化 (双 3D 曲面图)
-# ==========================================
+# 可视化
 fig = plt.figure(figsize=(16, 7))
 
 # 图1：基础时间曲面
@@ -140,7 +131,7 @@ for i in range(x_d.shape[0]):
         z_adj[i, j] = adj_sim.output['调整时间 (分钟)']
 ax2.plot_surface(x_d, y_dt, z_adj, cmap='Reds', alpha=0.8)
 ax2.scatter(test_d, test_dt, c_adj, color='black', s=100, label=f'调整时间点: {c_adj:+.1f}分')
-ax2.set_title('���二阶段: 时间微调策略面')
+ax2.set_title('第二阶段: 时间微调策略面')
 ax2.set_xlabel('污浊度 (%)'), ax2.set_ylabel('污浊类型'), ax2.set_zlabel('加减时间 (分)')
 ax2.legend()
 
