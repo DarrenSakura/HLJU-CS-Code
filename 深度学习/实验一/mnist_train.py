@@ -6,17 +6,11 @@ from    torch import optim
 import  torchvision
 from    matplotlib import pyplot as plt
 
-from    utils import plot_image, plot_curve
+from    utils import plot_image, plot_curve, one_hot
 
 
 
-batch_size = 128
-epochs = 5
-
-torch.manual_seed(42)
-
-device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-print('using device:', device)
+batch_size = 512
 
 # step1. load dataset
 train_loader = torch.utils.data.DataLoader(
@@ -49,19 +43,16 @@ class Net(nn.Module):
         super(Net, self).__init__()
 
         # xw+b
-        self.fc1 = nn.Linear(28*28, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 10)
-        self.dropout = nn.Dropout(0.2)
+        self.fc1 = nn.Linear(28*28, 256)
+        self.fc2 = nn.Linear(256, 64)
+        self.fc3 = nn.Linear(64, 10)
 
     def forward(self, x):
         # x: [b, 1, 28, 28]
         # h1 = relu(xw1+b1)
         x = F.relu(self.fc1(x))
-        x = self.dropout(x)
         # h2 = relu(h1w2+b2)
         x = F.relu(self.fc2(x))
-        x = self.dropout(x)
         # h3 = h2w3+b3
         x = self.fc3(x)
 
@@ -69,24 +60,26 @@ class Net(nn.Module):
 
 
 
-net = Net().to(device)
+net = Net()
 # [w1, b1, w2, b2, w3, b3]
-optimizer = optim.Adam(net.parameters(), lr=1e-3)
-
+#optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+optimizer = optim.Adam(net.parameters(), lr=0.001)
 
 train_loss = []
 
-for epoch in range(epochs):
+for epoch in range(3):
 
     for batch_idx, (x, y) in enumerate(train_loader):
 
         # x: [b, 1, 28, 28], y: [512]
-        x, y = x.to(device), y.to(device)
         # [b, 1, 28, 28] => [b, 784]
         x = x.view(x.size(0), 28*28)
         # => [b, 10]
         out = net(x)
-        loss = F.cross_entropy(out, y)
+        # [b, 10]
+        y_onehot = one_hot(y)
+        # loss = mse(out, y_onehot)
+        loss = F.mse_loss(out, y_onehot)
 
         optimizer.zero_grad()
         loss.backward()
@@ -103,9 +96,7 @@ plot_curve(train_loss)
 
 
 total_correct = 0
-net.eval()
 for x,y in test_loader:
-    x, y = x.to(device), y.to(device)
     x  = x.view(x.size(0), 28*28)
     out = net(x)
     # out: [b, 10] => pred: [b]
@@ -118,11 +109,8 @@ acc = total_correct / total_num
 print('test acc:', acc)
 
 x, y = next(iter(test_loader))
-out = net(x.to(device).view(x.size(0), 28*28))
+out = net(x.view(x.size(0), 28*28))
 pred = out.argmax(dim=1)
-plot_image(x, pred.cpu(), 'test')
-
-
-
+plot_image(x, pred, 'test')
 
 
